@@ -1,0 +1,15 @@
+Peyda Regular and Bold
+Copyright (c) 2021 by www.fontiran.com. All rights reserved.
+Designer: Seyed Naser Khadem. Publisher: Fontiran.
+Official product and licensing: https://fontiran.com/fonts/peyda
+
+Peyda is proprietary. The SIL Open Font License in OFL.txt applies to
+Vazirmatn only, not Peyda. Do not treat these fonts as open-source assets.
+The project owner has confirmed permission to redistribute these faces with
+this application. They remain proprietary and are excluded from the MIT
+license covering this project's original code. This repository does not grant
+independent rights to use or redistribute Peyda outside the applicable
+Fontiran license.
+
+App and installer load the fonts privately within their process; they do not
+install fonts globally or modify the user's font settings.
