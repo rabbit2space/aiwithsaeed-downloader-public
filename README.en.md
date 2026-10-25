@@ -30,13 +30,13 @@ To update, close the app and run the new installer. Your queue and settings are 
 
 Site support comes from [yt-dlp](https://github.com/yt-dlp/yt-dlp). Downloads can be affected by changes to a site, account restrictions, or your network.
 
-## Setup and privacy
+## Optional setup
 
 Try without cookies first. If YouTube asks you to sign in, open the app's setup guide for Firefox instructions. The same guide walks through creating a Telegram bot. The desktop app must stay open for the bot to work.
 
 If your connection blocks installation or downloads, try another connection or a system-wide VPN. A browser VPN extension does not cover the desktop app.
 
-The app does not upload your links, files, cookies, or Telegram token to AIwithSaeed. It connects to the source websites, optional Telegram services, and official tool download hosts. Keep cookies and tokens private; redact personal information before reporting an issue. Using account cookies can put that account at risk of restrictions.
+The app connects to the source websites, optional Telegram services, and official tool download hosts. Keep cookies and tokens private; redact personal information before reporting an issue. Using account cookies can put that account at risk of restrictions.
 
 ## Develop and build
 

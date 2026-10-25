@@ -36,5 +36,4 @@ In version 4.5's online installer, our app and Python are embedded. Node.js and
 the Gyan FFmpeg essentials archive are fetched directly from their official
 versioned download locations during installation, with publisher SHA-256/size
 verification. Their LICENSE/README notices are retained in the installed app.
-This edition does not need or contact a custom AIwithSaeed installation server.
 Any optional self-contained portable build still redistributes those binaries.

@@ -8,9 +8,8 @@ Website: [aiwithsaeed.com](https://aiwithsaeed.com)
 
 [Download for Windows](https://github.com/rabbit2space/aiwithsaeed-downloader-public/releases/latest) · [Changelog](../CHANGELOG.md)
 
-## Privacy-first public release
+## Storage and optional setup
 
-- The app does not send links, files, passwords, cookies, logs, or Telegram credentials to AIwithSaeed.
 - Mutable data is stored per Windows user in `%LOCALAPPDATA%\AIwithSaeed\Downloader`, outside the installation folder.
 - Telegram is disabled by default. There is no built-in token, user ID, chat ID, proxy, or personal account.
 - A BotFather token is encrypted for the current Windows account with Windows DPAPI.

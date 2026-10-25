@@ -70,7 +70,7 @@ except ImportError:
     yt_dlp = None
 
 
-APP_VERSION = "4.6.0"
+APP_VERSION = "4.6.1"
 APP_DIR = INSTALL_DIR
 ASSET_DIR = APP_DIR / "assets"
 BRAND_LOGO_LIGHT_FILE = ASSET_DIR / "aiwithsaeed-logo-light.png"
@@ -204,7 +204,7 @@ TEXT = {
         "processing": "Finishing your media…",
         "cookie_retry": "YouTube authentication required",
         "retry_detail": "Retrying safely with Firefox cookies…",
-        "privacy": "Private on your device · Download responsibly",
+        "privacy": "Download responsibly",
         "ffmpeg_ok": "FFmpeg ready",
         "ffmpeg_missing": "FFmpeg missing",
         "js_ok": "YouTube engine ready",
@@ -297,7 +297,7 @@ TEXT = {
         "processing": "در حال تکمیل فایل…",
         "cookie_retry": "احراز هویت یوتیوب لازم است",
         "retry_detail": "تلاش دوباره با کوکی‌های فایرفاکس…",
-        "privacy": "خصوصی روی دستگاه شما · مسئولانه دانلود کنید",
+        "privacy": "مسئولانه دانلود کنید",
         "ffmpeg_ok": "آماده است: FFmpeg",
         "ffmpeg_missing": "نصب نیست: FFmpeg",
         "js_ok": "موتور یوتیوب آماده است",
@@ -351,9 +351,7 @@ GUIDE_TEXT = {
             "Connect your own private Telegram bot (optional)",
         ),
         "bodies": (
-            "You received the ZIP from AIwithSaeed.com, but the desktop app never asks you to register, "
-            "sign in to the website, or enter an activation code. Files, links, settings, logs, cookies, "
-            "and Telegram credentials remain on this Windows account and are not uploaded to AIwithSaeed.",
+            "The app is free to use. Cookies and Telegram are optional.",
             "Try public videos without cookies first. YouTube cookies are mainly needed when YouTube asks "
             "you to sign in or for account-only content. yt-dlp warns that account use can result in a "
             "temporary or permanent ban, so use cookies only when necessary and prefer a separate account.\n\n"
@@ -410,8 +408,7 @@ GUIDE_TEXT = {
             "دانلود با ربات تلگرام (اختیاری)",
         ),
         "bodies": (
-            "برنامه رایگان است و برای استفاده از آن نیازی به ثبت‌نام ندارید.\n"
-            "اطلاعات شخصی شما به سایت سازنده فرستاده نمی‌شود.",
+            "برنامه رایگان است و برای استفاده از آن نیازی به ثبت‌نام ندارید.",
             "اول بدون کوکی دانلود کنید. اگر یوتیوب از شما خواست وارد حساب شوید، این مراحل را انجام دهید:\n\n"
             "۱. فایرفاکس را نصب کنید، اگر روی کامپیوترتان نیست.\n"
             "۲. یوتیوب را در فایرفاکس باز کنید و وارد حساب شوید.\n"

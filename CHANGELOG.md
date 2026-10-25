@@ -1,5 +1,10 @@
 # Changelog / تغییرات
 
+## 4.6.1 — 2026-10-25
+
+- کوتاه‌شدن متن راهنمای شروع کار و فوتر برنامه و هماهنگی توضیحات فارسی و انگلیسی گیت‌هاب
+- Simplify the welcome guide, app footer, and Persian/English repository copy.
+
 ## 4.6.0 — 2026-10-25
 
 ### فارسی
