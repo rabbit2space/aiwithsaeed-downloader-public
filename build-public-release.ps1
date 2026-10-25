@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
-$version = "4.5.1"
+$version = "4.6.0"
 $workspace = (Resolve-Path $PSScriptRoot).Path
 $dist = Join-Path $workspace "dist"
 $stage = Join-Path $dist "AIwithSaeed-Downloader-v$version"
@@ -25,11 +25,13 @@ if (Test-Path -LiteralPath $zip) {
 }
 New-Item -ItemType Directory -Path $stage | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $stage "assets") | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $stage "docs") | Out-Null
 
 $files = @(
     "app.py", "app_paths.py", "bot.py", "download_config.py", "launcher.pyw",
     "queue_store.py", "release_check.py", "ui_fonts.py", "online_download.py", "official_resources.py", "requirements.txt", "run.bat", "setup.ps1", "README.md",
     "README.en.md", "LICENSE", "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md",
+    "docs\REFERENCE.md",
     "QUICK-START-FA.html", "THIRD-PARTY.md", "build-windows.py", "windows_installer.py", "requirements-build.txt"
 )
 $assets = @(
@@ -44,6 +46,8 @@ foreach ($file in $files) {
 foreach ($file in $assets) {
     Copy-Item -LiteralPath (Join-Path $workspace $file) -Destination (Join-Path $stage $file)
 }
+Copy-Item -LiteralPath (Join-Path $workspace "docs\screenshots") -Destination (Join-Path $stage "docs\screenshots") -Recurse
+Copy-Item -LiteralPath (Join-Path $workspace "licenses") -Destination (Join-Path $stage "licenses") -Recurse
 
 foreach ($pattern in @("*.db", "*.log", "*.dpapi", "cookies*.txt", ".env*", "*.pyc")) {
     $found = Get-ChildItem -LiteralPath $stage -Recurse -Force -Filter $pattern

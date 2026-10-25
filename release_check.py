@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import importlib.metadata
 import subprocess
 import sys
 from pathlib import Path
@@ -14,7 +15,8 @@ def main() -> None:
     from PIL import Image
 
     output = Path(sys.argv[sys.argv.index("--self-test") + 1]).resolve()
-    result = {"version": app.APP_VERSION, "frozen": bool(getattr(sys, "frozen", False))}
+    result = {"version": app.APP_VERSION, "frozen": bool(getattr(sys, "frozen", False)),
+              "yt_dlp": importlib.metadata.version("yt-dlp")}
     try:
         app.register_local_fonts()
         window = app.DownloaderApp()
@@ -24,6 +26,9 @@ def main() -> None:
         window.update()
         assert window.language == "fa"
         assert int(window.brand_logo.grid_info()["column"]) == 4
+        window._refresh_queue_view()
+        assert window.empty_queue_label.cget("text") == window._text("queue_empty")
+        assert window.empty_queue_label.pack_info()["anchor"] == "e"
         window._open_setup_guide()
         for step in range(5):
             window.setup_step = step
@@ -34,6 +39,8 @@ def main() -> None:
         window._set_language("en")
         window.update()
         assert int(window.brand_logo.grid_info()["column"]) == 0
+        assert window.empty_queue_label.cget("text") == window._text("queue_empty")
+        assert window.empty_queue_label.pack_info()["anchor"] == "w"
         window._set_language("fa")
         for name in ("ffmpeg", "ffprobe"):
             path = app.DownloaderApp._media_tool(name)

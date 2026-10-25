@@ -8,7 +8,7 @@ $venvPython = Join-Path $venvPath "Scripts\python.exe"
 $invalidVenv = $null
 
 if (Test-Path -LiteralPath $venvPython) {
-    & $venvPython -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)" 2>$null
+    & $venvPython -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)" 2>$null
     if ($LASTEXITCODE -ne 0) {
         $invalidVenv = Join-Path $PSScriptRoot (
             ".venv.invalid-" + (Get-Date -Format "yyyyMMdd-HHmmss")
@@ -30,7 +30,7 @@ if (-not $py) {
         if ($invalidVenv -and (Test-Path -LiteralPath $invalidVenv)) {
             Move-Item -LiteralPath $invalidVenv -Destination $venvPath
         }
-        Write-Host "Python 3.10 or newer is required." -ForegroundColor Yellow
+        Write-Host "Python 3.11 or newer is required." -ForegroundColor Yellow
         Write-Host "Install it from https://www.python.org/downloads/windows/ and enable 'Add Python to PATH'."
         Read-Host "Press Enter to close"
         exit 1

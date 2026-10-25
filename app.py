@@ -70,7 +70,7 @@ except ImportError:
     yt_dlp = None
 
 
-APP_VERSION = "4.5.1"
+APP_VERSION = "4.6.0"
 APP_DIR = INSTALL_DIR
 ASSET_DIR = APP_DIR / "assets"
 BRAND_LOGO_LIGHT_FILE = ASSET_DIR / "aiwithsaeed-logo-light.png"
@@ -1280,6 +1280,9 @@ class DownloaderApp(BaseWindow, _DndSupport):
             menu.configure(values=values)
             menu.set(OPTIONS[group][variable.get()][language])
         self.queue_signature = None
+        if self.empty_queue_label is not None:
+            self.empty_queue_label.configure(text=self._text("queue_empty"), anchor=anchor)
+            self.empty_queue_label.pack_configure(anchor=anchor)
         if not self.worker or not self.worker.is_alive():
             self.status_label.configure(text=self._text("ready"), anchor=anchor)
             self.detail_label.configure(text=self._text("ready_detail"), anchor=anchor)
@@ -2778,7 +2781,7 @@ class DownloaderApp(BaseWindow, _DndSupport):
                     self.history, text=self._text("queue_empty"), text_color=MUTED,
                     font=self._font(10),
                 )
-                self.empty_queue_label.pack(anchor="w", padx=8, pady=8)
+                self.empty_queue_label.pack(anchor="e" if self.language == "fa" else "w", padx=8, pady=8)
             for job in jobs:
                 self._add_queue_row(job)
         else:

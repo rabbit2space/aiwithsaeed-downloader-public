@@ -169,7 +169,7 @@ class DownloadSettingsTests(unittest.TestCase):
                 self.assertGreaterEqual(logo.width, 1000)
 
     def test_onboarding_is_complete_and_never_requires_a_website_account(self) -> None:
-        self.assertEqual(APP_VERSION, "4.5.1")
+        self.assertEqual(APP_VERSION, "4.6.0")
         for language, copy in GUIDE_TEXT.items():
             with self.subTest(language=language):
                 self.assertEqual(len(copy["steps"]), 5)

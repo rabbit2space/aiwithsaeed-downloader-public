@@ -12,25 +12,25 @@ from online_download import DownloadProblem, validate_config
 # linked by FFmpeg. Keep URLs, versions, sizes and hashes together when updating.
 RESOURCES = [
     {
-        "id": "node", "label": "Node.js", "version": "22.20.0",
-        "url": "https://nodejs.org/dist/v22.20.0/node-v22.20.0-win-x64.zip",
-        "size": 35500968,
-        "sha256": "bb819d6eb8f5bfda294bbc83a7e4ec6539da67c4233d54b0d655b9248b15e29d",
+        "id": "node", "label": "Node.js", "version": "24.22.1",
+        "url": "https://nodejs.org/dist/v24.22.1/node-v24.22.1-win-x64.zip",
+        "size": 37748064,
+        "sha256": "d2046d28c2c3dcd211ac5145c0bf30e2047ef9dfb306693c8c6e2eccd8b95fa5",
         "members": {
-            "node-v22.20.0-win-x64/node.exe": "_internal/tools/node.exe",
-            "node-v22.20.0-win-x64/LICENSE": "_internal/licenses/Node-LICENSE.txt",
+            "node-v24.22.1-win-x64/node.exe": "_internal/tools/node.exe",
+            "node-v24.22.1-win-x64/LICENSE": "_internal/licenses/Node-LICENSE.txt",
         },
     },
     {
-        "id": "ffmpeg", "label": "FFmpeg", "version": "8.1.2-essentials",
-        "url": "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-8.1.2-essentials_build.zip",
-        "size": 109728040,
-        "sha256": "db580001caa24ac104c8cb856cd113a87b0a443f7bdf47d8c12b1d740584a2ec",
+        "id": "ffmpeg", "label": "FFmpeg", "version": "9.0.2-essentials",
+        "url": "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-9.0.2-essentials_build.zip",
+        "size": 114768076,
+        "sha256": "60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba",
         "members": {
-            "ffmpeg-8.1.2-essentials_build/bin/ffmpeg.exe": "_internal/tools/ffmpeg.exe",
-            "ffmpeg-8.1.2-essentials_build/bin/ffprobe.exe": "_internal/tools/ffprobe.exe",
-            "ffmpeg-8.1.2-essentials_build/LICENSE": "_internal/licenses/FFmpeg-LICENSE.txt",
-            "ffmpeg-8.1.2-essentials_build/README.txt": "_internal/licenses/FFmpeg-provider-README.txt",
+            "ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe": "_internal/tools/ffmpeg.exe",
+            "ffmpeg-9.0.2-essentials_build/bin/ffprobe.exe": "_internal/tools/ffprobe.exe",
+            "ffmpeg-9.0.2-essentials_build/LICENSE": "_internal/licenses/FFmpeg-LICENSE.txt",
+            "ffmpeg-9.0.2-essentials_build/README.txt": "_internal/licenses/FFmpeg-provider-README.txt",
         },
     },
 ]

@@ -55,10 +55,12 @@ def main() -> None:
     licenses = work / "licenses"
     licenses.mkdir(exist_ok=True)
     shutil.copy2(Path(sys.base_prefix) / "LICENSE.txt", licenses / "Python-LICENSE.txt")
-    for component in ("tcl8.6", "tk8.6"):
-        candidate = Path(sys.base_prefix) / "tcl" / component / "license.terms"
+    for notice in (ROOT / "licenses").glob("*.txt"):
+        shutil.copy2(notice, licenses / notice.name)
+    for component in (Path(sys.base_prefix) / "tcl").glob("*"):
+        candidate = component / "license.terms"
         if candidate.is_file():
-            shutil.copy2(candidate, licenses / f"{component}-LICENSE.txt")
+            shutil.copy2(candidate, licenses / f"{component.name}-LICENSE.txt")
     for distribution in importlib.metadata.distributions():
         for file in distribution.files or []:
             if any(part.lower().startswith(("license", "copying")) for part in file.parts):
@@ -85,8 +87,11 @@ def main() -> None:
         shutil.copy2(ROOT / "assets" / name, web_fonts / name)
     for name in ("QUICK-START-FA.html", "THIRD-PARTY.md", "LICENSE"):
         shutil.copy2(ROOT / name, core / name)
+    dependencies = {name: importlib.metadata.version(name) for name in
+                    ("yt-dlp", "yt-dlp-ejs", "certifi", "Pillow", "customtkinter", "tkinterdnd2", "python-telegram-bot")}
     manifest = {"product": "AIwithSaeed.Downloader", "version": version,
                 "python": sys.version, "source_app_sha256": sha256(ROOT / "app.py"), "tools": "official downloads at install time"}
+    manifest["dependencies"] = dependencies
     (core / "installation.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     payload = work / "payload.zip"
     zip_folder(core, payload)
