@@ -27,6 +27,9 @@ from PIL import Image
 from download_config import (
     DownloadSettings,
     desktop_settings_for_url,
+    download_single,
+    is_collection_url,
+    CollectionScopeError,
     format_bytes,
     premiere_streams_compatible,
     validate_proxy_url,
@@ -70,7 +73,7 @@ except ImportError:
     yt_dlp = None
 
 
-APP_VERSION = "4.6.1"
+APP_VERSION = "4.7.0"
 APP_DIR = INSTALL_DIR
 ASSET_DIR = APP_DIR / "assets"
 BRAND_LOGO_LIGHT_FILE = ASSET_DIR / "aiwithsaeed-logo-light.png"
@@ -177,6 +180,10 @@ TEXT = {
         "quality": "Quality",
         "features": "KEEP THE DETAILS",
         "playlist": "Playlist / channel",
+        "gpu_encoding": "GPU encoding (auto)",
+        "confirm_collection": "Download every video in these playlists or profiles? This may add many items. Choose No to cancel.",
+        "confirm_saved_collection": "This saved item requests a playlist or profile.\nYes: download the whole collection.\nNo: only the linked video.\nCancel: keep it paused.",
+        "collection_link": "This link opens a playlist or profile. Enable Playlist / channel and confirm, or paste a single video link.",
         "subtitles": "Available subtitles",
         "auto_subtitles": "Auto-generated captions",
         "subtitle_langs": "Subtitle languages",
@@ -270,6 +277,10 @@ TEXT = {
         "quality": "کیفیت",
         "features": "جزئیات فایل",
         "playlist": "پلی‌لیست / کانال",
+        "gpu_encoding": "تبدیل با کارت گرافیک (خودکار)",
+        "confirm_collection": "همه ویدیوهای این پلی‌لیست یا صفحه دانلود شوند؟ ممکن است تعداد زیادی به صف اضافه شود. برای انصراف «خیر» را بزنید.",
+        "confirm_saved_collection": "این مورد ذخیره‌شده مربوط به یک پلی‌لیست یا صفحه است.\nبله: دانلود همه ویدیوها\nخیر: فقط ویدیوی لینک‌شده\nانصراف: در حالت توقف بماند",
+        "collection_link": "این لینک مربوط به یک پلی‌لیست یا صفحه است. گزینه «پلی‌لیست / کانال» را فعال و تأیید کنید، یا لینک یک ویدیو را وارد کنید.",
         "subtitles": "زیرنویس‌های موجود",
         "auto_subtitles": "زیرنویس خودکار",
         "subtitle_langs": "زبان زیرنویس",
@@ -829,6 +840,7 @@ class DownloaderApp(BaseWindow, _DndSupport):
             value=self.job_store.get_preference("completion_sound", "1") != "0"
         )
         self.playlist = tk.BooleanVar(value=False)
+        self.gpu_encoding = tk.BooleanVar(value=self.job_store.get_preference("video_encoder", "auto") != "cpu")
         self.subtitles = tk.BooleanVar(value=False)
         self.auto_subtitles = tk.BooleanVar(value=False)
         self.subtitle_langs = tk.StringVar(value="en")
@@ -1039,6 +1051,7 @@ class DownloaderApp(BaseWindow, _DndSupport):
             ("subtitles", self.subtitles), ("auto_subtitles", self.auto_subtitles),
             ("embed_thumbnail", self.embed_thumbnail), ("metadata", self.metadata),
             ("description", self.description), ("completion_sound", self.completion_sound),
+            ("gpu_encoding", self.gpu_encoding),
         )
         self.feature_checkboxes: list[Any] = []
         for index, (key, variable) in enumerate(checks):
@@ -1058,7 +1071,7 @@ class DownloaderApp(BaseWindow, _DndSupport):
             self.feature_checkboxes.append(box)
         lang_row = ctk.CTkFrame(grid, fg_color=PILL, corner_radius=12)
         self.subtitle_lang_row = lang_row
-        lang_row.grid(row=4, column=0, columnspan=2, sticky="ew", padx=6, pady=(10, 0))
+        lang_row.grid(row=5, column=0, columnspan=2, sticky="ew", padx=6, pady=(10, 0))
         label = ctk.CTkLabel(lang_row, text="", text_color=MUTED, font=self._font(10, "bold"), anchor="w")
         self.subtitle_lang_label = label
         label.pack(side="left", padx=13)
@@ -1983,6 +1996,7 @@ class DownloaderApp(BaseWindow, _DndSupport):
             embed_thumbnail=self.embed_thumbnail.get(), metadata=self.metadata.get(),
             description=self.description.get(), browser=self.browser.get(),
             cookie_file=self.cookies_file.get(), proxy=self.proxy.get().strip(),
+            encoder="auto" if self.gpu_encoding.get() else "cpu",
         )
 
     def _start_download(self) -> None:
@@ -2028,6 +2042,14 @@ class DownloaderApp(BaseWindow, _DndSupport):
                 return
 
         identifiers: list[int] = []
+        if not settings.playlist and any(is_collection_url(url) for url in urls):
+            messagebox.showwarning(APP_NAME, self._text("collection_link"), parent=self)
+            return
+        if settings.playlist and not messagebox.askyesno(
+            APP_NAME, self._text("confirm_collection"), default="no", parent=self,
+        ):
+            return
+        self.job_store.set_preference("video_encoder", settings.encoder)
         playlist_count = 0
         for url in urls:
             payload = desktop_settings_for_url(settings, url)
@@ -2145,15 +2167,19 @@ class DownloaderApp(BaseWindow, _DndSupport):
             "paths": {"home": str(settings.target)},
             "outtmpl": {"default": "%(playlist_title,channel|Collection)s/%(title)s [%(id)s].%(ext)s"},
             "noplaylist": not settings.playlist, "windowsfilenames": True, "continuedl": True,
-            "retries": 10, "fragment_retries": 10, "concurrent_fragment_downloads": 4,
+            "retries": 3, "fragment_retries": 3, "extractor_retries": 2,
+            "socket_timeout": 15, "concurrent_fragment_downloads": 4,
             "ignoreerrors": "only_download", "progress_hooks": [self._progress_hook],
             "postprocessor_hooks": [self._postprocessor_hook],
+            "post_hooks": [lambda filename: self.output_candidates.add(Path(filename))],
             "writethumbnail": settings.thumbnail or settings.embed_thumbnail,
             "writedescription": settings.description, "writesubtitles": settings.subtitles,
             "writeautomaticsub": settings.auto_subtitles,
             "subtitleslangs": self._subtitle_languages(settings), "subtitlesformat": "srt/best",
             "quiet": True, "no_warnings": False, "postprocessors": processors,
         }
+        if not settings.playlist:
+            options.update(playlist_items="1", lazy_playlist=True)
         if logger:
             options["logger"] = logger
         if runtime := self._javascript_runtime():
@@ -2180,7 +2206,7 @@ class DownloaderApp(BaseWindow, _DndSupport):
         result = subprocess.run(
             [
                 str(ffprobe), "-v", "error", "-show_entries",
-                "stream=codec_type,codec_name,pix_fmt", "-of", "json", str(path),
+                "stream=codec_type,codec_name,pix_fmt:format=duration", "-of", "json", str(path),
             ],
             capture_output=True,
             text=True,
@@ -2195,11 +2221,11 @@ class DownloaderApp(BaseWindow, _DndSupport):
             )
         return json.loads(result.stdout)
 
-    def _premiere_compatible_output(self, path: Path) -> Path:
+    def _premiere_compatible_output(self, path: Path, encoder: str = "auto") -> Path:
         """Return an H.264/yuv420p + AAC MP4, transcoding only when needed."""
-        if path.suffix.lower() == ".mp4" and premiere_streams_compatible(
-            self._probe_media(path)
-        ):
+        from media_encode import encode_mp4, EncodingCancelled
+        probe = self._probe_media(path)
+        if path.suffix.lower() == ".mp4" and premiere_streams_compatible(probe):
             return path
         ffmpeg = self._media_tool("ffmpeg")
         if not ffmpeg:
@@ -2213,51 +2239,47 @@ class DownloaderApp(BaseWindow, _DndSupport):
         temporary = final_path.with_name(
             f".{final_path.stem}.premiere-{os.getpid()}.tmp.mp4"
         )
+        self.events.put(("render_temp", str(temporary.resolve())))
         if self.current_job_id is not None:
             self.job_store.update(
                 self.current_job_id,
                 status="processing",
+                progress=0,
                 detail="Creating Premiere-compatible H.264 MP4",
             )
         self.events.put(("processing", "Creating Premiere-compatible MP4"))
-        command = [
-            str(ffmpeg), "-y", "-i", str(path),
-            "-map", "0:v:0", "-map", "0:a:0?", "-map_metadata", "0",
-            "-sn", "-dn", "-c:v", "libx264", "-preset", "medium",
-            "-crf", "18", "-profile:v", "high", "-pix_fmt", "yuv420p",
-            "-fps_mode", "cfr", "-c:a", "aac", "-b:a", "192k",
-            "-ar", "48000", "-movflags", "+faststart", str(temporary),
-        ]
+        try:
+            duration = float((probe.get("format") or {}).get("duration") or 0)
+        except (TypeError, ValueError):
+            duration = 0.0
+        active_encoder = ""
+        def cancelled():
+            self._sync_job_control()
+            return self.cancel_event.is_set()
+        def status(label):
+            nonlocal active_encoder
+            active_encoder = label
+            if self.current_job_id is not None:
+                self.job_store.update(self.current_job_id, detail=label, progress=0)
+            self.events.put(("processing", label))
+            self.events.put(("render_progress", {"percent": 0, "encoder": label, "speed": ""}))
+        def progress(percent, speed):
+            if self.current_job_id is not None:
+                self.job_store.update(self.current_job_id, progress=percent,
+                                      detail=f"{active_encoder} · {speed}")
+            self.events.put(("render_progress", {"percent": percent, "encoder": active_encoder, "speed": speed}))
         LOGGER.info("Transcoding incompatible media for Premiere: %s", path)
         try:
-            with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as error_log:
-                process = subprocess.Popen(
-                    command,
-                    stdin=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL,
-                    stderr=error_log,
-                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-                )
-                while process.poll() is None:
-                    if self.cancel_event.wait(0.2):
-                        process.terminate()
-                        try:
-                            process.wait(timeout=3)
-                        except subprocess.TimeoutExpired:
-                            process.kill()
-                        raise DownloadCancelled()
-                if process.returncode != 0:
-                    error_log.seek(0)
-                    details = error_log.read()[-2000:].strip()
-                    raise RuntimeError(
-                        f"FFmpeg could not create a Premiere-compatible MP4: {details}"
-                    )
+            mode = "copy" if premiere_streams_compatible(probe) else encoder
+            encode_mp4(ffmpeg, path, temporary, duration, mode, cancelled, status, progress)
             if not premiere_streams_compatible(self._probe_media(temporary)):
                 raise RuntimeError("The converted file failed the Premiere compatibility check.")
             temporary.replace(final_path)
             if path != final_path:
                 path.unlink(missing_ok=True)
             return final_path
+        except EncodingCancelled:
+            raise DownloadCancelled()
         finally:
             temporary.unlink(missing_ok=True)
 
@@ -2316,7 +2338,57 @@ class DownloaderApp(BaseWindow, _DndSupport):
         return DownloadSettings.from_payload(payload)
 
     def _download_worker(self) -> None:
-        while job := self.job_store.claim_next():
+        from job_runner import run_isolated_job
+        while not self.closing and (job := self.job_store.claim_next()):
+            job_id = int(job["id"])
+            self.current_job_id, self.current_control = job_id, ""
+            self.cancel_event.clear()
+            render_temps: set[Path] = set()
+            def on_event(event):
+                if event[0] == "render_temp":
+                    render_temps.add(Path(event[1]))
+                else:
+                    self.events.put(event)
+            def control():
+                if self.cancel_event.is_set():
+                    return self.current_control or "pause"
+                current = self.job_store.get(job_id)
+                if current is None:
+                    return "missing"
+                return current.get("control") or ("pause" if self.cancel_event.is_set() else "")
+            try:
+                code, action = run_isolated_job(job_id, APP_DATA_DIR, on_event, control)
+                current = self.job_store.get(job_id)
+                action = (current or {}).get("control") or action
+                if action == "remove":
+                    self.job_store.delete(job_id)
+                elif action == "pause" and current and current["status"] != "completed":
+                    self.job_store.update(job_id, status="paused", control="", detail="Paused; partial file kept")
+                elif current and current["status"] in {"downloading", "processing", "expanding"}:
+                    self.job_store.update(job_id, status="failed", control="", error=f"Download worker stopped ({code}). Resume to retry.")
+            except Exception as exc:
+                LOGGER.exception("Download supervisor failed")
+                current = self.job_store.get(job_id)
+                if current and current.get("control") == "remove":
+                    self.job_store.delete(job_id)
+                elif current:
+                    self.job_store.update(job_id, status="failed", control="", error=self._clean_error(str(exc)))
+            finally:
+                if render_temps:
+                    try:
+                        target = Path(self.job_store.settings(job)["target"]).resolve()
+                        for temporary in render_temps:
+                            if (temporary.resolve().is_relative_to(target)
+                                    and re.fullmatch(r"\..+\.premiere-\d+\.tmp\.mp4", temporary.name)):
+                                temporary.unlink(missing_ok=True)
+                    except (OSError, ValueError, KeyError):
+                        LOGGER.warning("Could not clean an interrupted conversion temporary file")
+                self.current_job_id, self.current_control = None, ""
+                self.events.put(("queue_changed", None))
+        self.events.put(("finished", False))
+
+    def _run_claimed_job(self, job: dict[str, Any]) -> None:
+        for job in (job,):
             job_id = int(job["id"])
             url = str(job["url"])
             self.current_job_id = job_id
@@ -2329,6 +2401,9 @@ class DownloaderApp(BaseWindow, _DndSupport):
                 settings = DownloadSettings.from_payload(self.job_store.settings(job))
                 settings = self._apply_shared_connection_settings(job_id, settings)
                 if settings.playlist:
+                    if not settings.collection_confirmed:
+                        self.job_store.update(job_id, status="paused", control="", detail="Confirm playlist / channel scope before resuming")
+                        continue
                     self.job_store.update(
                         job_id, status="expanding", detail="Reading complete playlist…"
                     )
@@ -2364,7 +2439,7 @@ class DownloaderApp(BaseWindow, _DndSupport):
                 logger = DownloadLogger()
                 try:
                     with yt_dlp.YoutubeDL(self._ydl_options(settings, logger)) as ydl:
-                        result = ydl.download([url])
+                        result = download_single(ydl, url)
                 except Exception as first_error:
                     if self.cancel_event.is_set():
                         raise DownloadCancelled()
@@ -2391,7 +2466,7 @@ class DownloaderApp(BaseWindow, _DndSupport):
                     retry_logger = DownloadLogger()
                     try:
                         with yt_dlp.YoutubeDL(self._ydl_options(retry_settings, retry_logger)) as ydl:
-                            result = ydl.download([url])
+                            result = download_single(ydl, url)
                     except Exception as retry_error:
                         if self.cancel_event.is_set():
                             raise DownloadCancelled()
@@ -2411,9 +2486,11 @@ class DownloaderApp(BaseWindow, _DndSupport):
                     settings = retry_settings
                 if result == 0:
                     files = self._completed_outputs(settings.target, started_at)
+                    if not files:
+                        raise RuntimeError("The download finished without a confirmed output file. No other files were changed.")
                     if settings.mode == "premiere":
                         files = [
-                            self._premiere_compatible_output(path)
+                            self._premiere_compatible_output(path, settings.encoder)
                             for path in files
                             if path.suffix.lower() not in {".mp3", ".aac", ".m4a", ".wav", ".flac", ".ogg", ".opus"}
                         ]
@@ -2447,14 +2524,13 @@ class DownloaderApp(BaseWindow, _DndSupport):
                     else:
                         self.job_store.update(job_id, status="paused", control="", detail="Paused")
                 else:
-                    reason = self._clean_error(str(exc))
+                    reason = self._text("collection_link") if isinstance(exc, CollectionScopeError) else self._clean_error(str(exc))
                     self.job_store.update(job_id, status="failed", error=reason)
                     self.events.put(("job_error", (url, reason)))
             finally:
                 self.current_job_id = None
                 self.current_control = ""
                 self.events.put(("queue_changed", None))
-        self.events.put(("finished", False))
 
     def _playlist_entries(
         self, url: str, settings: DownloadSettings
@@ -2463,7 +2539,8 @@ class DownloaderApp(BaseWindow, _DndSupport):
         options: dict[str, Any] = {
             "extract_flat": "in_playlist", "skip_download": True, "noplaylist": False,
             "lazy_playlist": False, "quiet": True, "no_warnings": False,
-            "ignoreerrors": True, "logger": logger,
+            "ignoreerrors": True, "logger": logger, "socket_timeout": 15,
+            "retries": 3, "extractor_retries": 2,
         }
         if runtime := self._javascript_runtime():
             name, path = runtime
@@ -2498,23 +2575,10 @@ class DownloaderApp(BaseWindow, _DndSupport):
         return entries
 
     def _completed_outputs(self, target: Path, started_at: float) -> list[Path]:
-        expanded: set[Path] = set()
-        for candidate in self.output_candidates:
-            expanded.add(candidate)
-            for suffix in MEDIA_EXTENSIONS:
-                expanded.add(candidate.with_suffix(suffix))
-        existing = [path for path in expanded if path.is_file()]
-        if existing:
-            return sorted(set(existing), key=lambda path: path.stat().st_mtime)
-        try:
-            files = [
-                path for path in target.rglob("*")
-                if path.is_file() and path.suffix.lower() in MEDIA_EXTENSIONS
-                and path.stat().st_mtime >= started_at
-            ]
-        except OSError:
-            return []
-        return sorted(set(files), key=lambda path: path.stat().st_mtime)
+        # Only process outputs reported by this job, not other recent media.
+        return sorted({path for path in self.output_candidates
+                       if path.is_file() and path.suffix.lower() in MEDIA_EXTENSIONS},
+                      key=lambda path: path.stat().st_mtime)
 
     @staticmethod
     def _cookie_help(settings: DownloadSettings) -> str:
@@ -2587,8 +2651,8 @@ class DownloaderApp(BaseWindow, _DndSupport):
             return
         self.last_control_check = now
         job = self.job_store.get(self.current_job_id)
-        if job and job.get("control") in {"pause", "remove"}:
-            self.current_control = str(job["control"])
+        if job is None or job.get("control") in {"pause", "remove"}:
+            self.current_control = str(job["control"]) if job else "remove"
             self.cancel_event.set()
 
     def _set_progress(self, percent: float, immediate: bool = False) -> None:
@@ -2647,6 +2711,11 @@ class DownloaderApp(BaseWindow, _DndSupport):
                     self.status_label.configure(text=self._text("processing"))
                     self.detail_label.configure(text=str(payload))
                     self.speed_label.configure(text="")
+                elif event == "render_progress":
+                    if payload["percent"] is not None:
+                        self._set_progress(payload["percent"])
+                    self.detail_label.configure(text=payload["encoder"])
+                    self.speed_label.configure(text=payload["speed"])
                 elif event == "item_error":
                     self.status_label.configure(text=self._text("item_skipped"))
                     self.detail_label.configure(text=str(payload))
@@ -2732,6 +2801,9 @@ class DownloaderApp(BaseWindow, _DndSupport):
         self.bulk_delete_button.configure(state="normal" if count else "disabled")
 
     def _bulk_pause_selected(self) -> None:
+        if self.current_job_id in self.selected_job_ids:
+            self.current_control = "pause"
+            self.cancel_event.set()
         changed = self.job_store.pause_many(self.selected_job_ids)
         if self.current_job_id in changed:
             self.current_control = "pause"
@@ -2740,6 +2812,8 @@ class DownloaderApp(BaseWindow, _DndSupport):
         self.queue_signature = None
 
     def _bulk_resume_selected(self) -> None:
+        if not self._confirm_collection_resume(self.selected_job_ids):
+            return
         self.job_store.resume_many(self.selected_job_ids)
         self._clear_queue_selection()
         self.queue_signature = None
@@ -2755,6 +2829,9 @@ class DownloaderApp(BaseWindow, _DndSupport):
             parent=self,
         ):
             return
+        if self.current_job_id in self.selected_job_ids:
+            self.current_control = "remove"
+            self.cancel_event.set()
         result = self.job_store.remove_many(self.selected_job_ids)
         if self.current_job_id in result["stopping"]:
             self.current_control = "remove"
@@ -2908,17 +2985,44 @@ class DownloaderApp(BaseWindow, _DndSupport):
         self._set_queue_row_selected(int(job["id"]), int(job["id"]) in self.selected_job_ids)
 
     def _pause_queue_job(self, job_id: int) -> None:
+        if self.current_job_id == job_id:
+            self.current_control = "pause"
+            self.cancel_event.set()
         if self.job_store.pause(job_id) and self.current_job_id == job_id:
             self.current_control = "pause"
             self.cancel_event.set()
         self.queue_signature = None
 
     def _resume_queue_job(self, job_id: int) -> None:
+        if not self._confirm_collection_resume([job_id]):
+            return
         self.job_store.resume(job_id)
         self.queue_signature = None
         self._ensure_queue_worker()
 
+    def _confirm_collection_resume(self, identifiers) -> bool:
+        legacy = []
+        for job_id in identifiers:
+            job = self.job_store.get(job_id)
+            if job and job["status"] in {"paused", "failed", "cancelled"}:
+                payload = self.job_store.settings(job)
+                if payload.get("playlist") and not payload.get("collection_confirmed"):
+                    legacy.append((job_id, payload))
+        if legacy:
+            consent = messagebox.askyesnocancel(
+                APP_NAME, self._text("confirm_saved_collection"), default="no", parent=self,
+            )
+            if consent is None:
+                return False
+            for job_id, payload in legacy:
+                payload.update(playlist=consent, collection_confirmed=consent)
+                self.job_store.set_settings(job_id, payload)
+        return True
+
     def _remove_queue_job(self, job_id: int) -> None:
+        if self.current_job_id == job_id:
+            self.current_control = "remove"
+            self.cancel_event.set()
         result = self.job_store.remove(job_id)
         if result == "stopping" and self.current_job_id == job_id:
             self.current_control = "remove"

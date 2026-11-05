@@ -126,8 +126,25 @@ class QueueStore:
     def recover_interrupted(self) -> None:
         now = time.time()
         with self._connection() as connection:
+            connection.execute("DELETE FROM jobs WHERE control='remove'")
+            policy = connection.execute(
+                "SELECT value FROM preferences WHERE key='collection_scope_policy'"
+            ).fetchone()
+            if not policy or policy["value"] != "1":
+                # Queued children created by older auto-playlist behavior have
+                # no reliable provenance. Keep them for review, never run them
+                # automatically on the first launch after the safety update.
+                connection.execute(
+                    "UPDATE jobs SET status='paused', control='', "
+                    "detail='Review this saved queue item before resuming', updated_at=? WHERE status='queued'",
+                    (now,),
+                )
+                connection.execute(
+                    "INSERT INTO preferences(key,value) VALUES ('collection_scope_policy','1') "
+                    "ON CONFLICT(key) DO UPDATE SET value='1'"
+                )
             connection.execute(
-                "UPDATE jobs SET status='queued', control='', detail='Resuming after restart', "
+                "UPDATE jobs SET status='paused', control='', detail='Paused after restart; resume when ready', "
                 "updated_at=? WHERE status IN ('downloading', 'processing', 'expanding')",
                 (now,),
             )
@@ -205,9 +222,9 @@ class QueueStore:
         with self._connection() as connection:
             connection.execute("BEGIN IMMEDIATE")
             parent = connection.execute(
-                "SELECT source, chat_id, position FROM jobs WHERE id=?", (job_id,)
+                "SELECT source, chat_id, position, control FROM jobs WHERE id=?", (job_id,)
             ).fetchone()
-            if not parent:
+            if not parent or parent["control"]:
                 connection.commit()
                 return []
             position = float(parent["position"])
@@ -310,6 +327,7 @@ class QueueStore:
             return result
         placeholders = ",".join("?" for _ in identifiers)
         with self._connection() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             rows = connection.execute(
                 f"SELECT id, status FROM jobs WHERE id IN ({placeholders})",
                 identifiers,

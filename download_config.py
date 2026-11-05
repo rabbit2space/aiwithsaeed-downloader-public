@@ -12,6 +12,8 @@ class DownloadSettings:
     mode: str = "premiere"
     quality: str = "best"
     playlist: bool = False
+    collection_confirmed: bool = False
+    encoder: str = "auto"
     subtitles: bool = False
     auto_subtitles: bool = False
     subtitle_langs: str = "en"
@@ -45,7 +47,8 @@ class DownloadSettings:
 
 def bot_download_settings(target: Path, mode: str, quality: str, playlist: bool) -> dict[str, Any]:
     return DownloadSettings(
-        target=target, mode=mode, quality=quality, playlist=playlist
+        target=target, mode=mode, quality=quality, playlist=playlist,
+        collection_confirmed=playlist,
     ).to_payload()
 
 
@@ -58,11 +61,39 @@ def has_playlist_parameter(url: str) -> bool:
 
 
 def desktop_settings_for_url(settings: DownloadSettings, url: str) -> dict[str, Any]:
-    """Apply desktop settings while automatically honoring explicit playlist URLs."""
+    """Preserve explicit scope; a copied list= parameter is not consent."""
     payload = settings.to_payload()
-    if has_playlist_parameter(url):
-        payload["playlist"] = True
+    payload["collection_confirmed"] = bool(settings.playlist)
     return payload
+
+
+class CollectionScopeError(ValueError):
+    pass
+
+
+def download_single(ydl: Any, url: str) -> int:
+    """Resolve metadata first and reject collections before downloading any media."""
+    info = ydl.extract_info(url, download=False)
+    if not info:
+        return 1
+    if "entries" in info or info.get("_type") in {"playlist", "multi_video", "compat_list"}:
+        raise CollectionScopeError("This link opens a playlist or profile. Enable Playlist / channel explicitly to download the collection.")
+    result = ydl.process_ie_result(info, download=True)
+    return int(getattr(ydl, "_download_retcode", 0)) if result else 1
+
+
+def is_collection_url(url: str) -> bool:
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower().removeprefix("www.").removeprefix("m.")
+    path = parsed.path.rstrip("/")
+    if host in {"youtube.com", "music.youtube.com"}:
+        return (not path or path == "/playlist" or path == "/feed" or path.startswith("/feed/")
+                or path.startswith(("/@", "/channel/", "/c/", "/user/"))
+                or path in {"/shorts", "/videos"}
+                or (path == "/watch" and not parse_qs(parsed.query).get("v")))
+    if host == "instagram.com":
+        return not path.startswith(("/p/", "/reel/", "/reels/", "/tv/"))
+    return False
 
 
 SUPPORTED_PROXY_SCHEMES = {

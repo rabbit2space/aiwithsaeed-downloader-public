@@ -26,9 +26,18 @@ To update, close the app and run the new installer. Your queue and settings are 
 - Premiere-compatible video output and MP3 audio
 - Subtitles, thumbnails, and media information
 - Download progress and queue controls
+- Automatic GPU encoding for Premiere output, with a CPU fallback
 - Optional Firefox cookies and a personal Telegram bot
 
 Site support comes from [yt-dlp](https://github.com/yt-dlp/yt-dlp). Downloads can be affected by changes to a site, account restrictions, or your network.
+
+Video links stay single-video downloads even when they contain a playlist parameter. Enable **Playlist / channel** and confirm to download a whole collection. Old collection jobs require a scope choice before resuming.
+
+**GPU encoding (auto)** is enabled by default for Premiere output. The app tests NVIDIA NVENC, Intel Quick Sync, and AMD AMF before using a CPU fallback. Compatible MP4 files skip conversion; compatible streams in other containers are remuxed. Decoding and audio processing can still use the CPU.
+
+Deleting or pausing an active job stops its download and conversion processes before the queue proceeds. Interrupted jobs stay paused after restart; review them before resuming.
+
+On the first launch of 4.7, existing pending items from older versions are also paused for review. Delete unwanted entries and resume only the downloads you intended.
 
 ## Optional setup
 

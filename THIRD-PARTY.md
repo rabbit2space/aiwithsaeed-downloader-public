@@ -25,9 +25,9 @@ yt-dlp source: https://github.com/yt-dlp/yt-dlp
 CustomTkinter source: https://github.com/TomSchimansky/CustomTkinter
 python-telegram-bot source: https://github.com/python-telegram-bot/python-telegram-bot
 Python source and license: https://www.python.org/downloads/source/
-Python 3.14.9 Windows build provider: https://github.com/astral-sh/python-build-standalone/releases/tag/20261021
-The verified build archive is `cpython-3.14.9+20261021-x86_64-pc-windows-msvc-install_only.tar.gz`
-(SHA-256 `60739023ce2d9dee1dfde665c73bc61735cd8ecc5e0277345f1dc0ba6c0fc9ba`).
+Python 3.14.10 Windows build provider: https://github.com/astral-sh/python-build-standalone/releases/tag/20261026
+The verified build archive is `cpython-3.14.10+20261026-x86_64-pc-windows-msvc-install_only.tar.gz`
+(SHA-256 `98bbe6a0d798bcbad142e96e5930a330e4dc407638e898b515c51eb73a27580d`).
 
 The installer and application currently do not have a publisher signature.
 The release checksum identifies the exact file provided by AIwithSaeed.

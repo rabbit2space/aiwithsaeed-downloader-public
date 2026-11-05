@@ -1,6 +1,6 @@
-yt-dlp[default]>=2026.10.21
+yt-dlp[default]>=2026.10.26
 customtkinter>=5.2.2,<6
 Pillow>=13.0,<14
-tkinterdnd2>=0.6.4,<1
+tkinterdnd2>=0.7.0,<1
 python-telegram-bot[socks]>=22.8,<23
 certifi>=2026.10.23

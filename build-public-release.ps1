@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
-$version = "4.6.1"
+$version = "4.7.0"
 $workspace = (Resolve-Path $PSScriptRoot).Path
 $dist = Join-Path $workspace "dist"
 $stage = Join-Path $dist "AIwithSaeed-Downloader-v$version"
@@ -29,6 +29,7 @@ New-Item -ItemType Directory -Path (Join-Path $stage "docs") | Out-Null
 
 $files = @(
     "app.py", "app_paths.py", "bot.py", "download_config.py", "launcher.pyw",
+    "job_runner.py", "download_job.py", "media_encode.py",
     "queue_store.py", "release_check.py", "ui_fonts.py", "online_download.py", "official_resources.py", "requirements.txt", "run.bat", "setup.ps1", "README.md",
     "README.en.md", "LICENSE", "CHANGELOG.md", "SECURITY.md", "CONTRIBUTING.md",
     "docs\REFERENCE.md",

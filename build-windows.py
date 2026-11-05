@@ -53,6 +53,10 @@ def main() -> None:
     dist = ROOT / "dist"
     dist.mkdir(exist_ok=True)
     licenses = work / "licenses"
+    if not licenses.resolve().is_relative_to(work.resolve()):
+        raise RuntimeError("License staging directory is outside the build directory")
+    if licenses.exists():
+        shutil.rmtree(licenses)
     licenses.mkdir(exist_ok=True)
     shutil.copy2(Path(sys.base_prefix) / "LICENSE.txt", licenses / "Python-LICENSE.txt")
     for notice in (ROOT / "licenses").glob("*.txt"):
@@ -63,6 +67,8 @@ def main() -> None:
             shutil.copy2(candidate, licenses / f"{component.name}-LICENSE.txt")
     for distribution in importlib.metadata.distributions():
         for file in distribution.files or []:
+            if file.suffix.lower() in {".py", ".pyc", ".pyo"}:
+                continue
             if any(part.lower().startswith(("license", "copying")) for part in file.parts):
                 source = distribution.locate_file(file)
                 if source.is_file():

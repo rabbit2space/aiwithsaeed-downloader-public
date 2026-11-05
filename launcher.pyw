@@ -11,6 +11,10 @@ from app_paths import APP_NAME, STARTUP_LOG_FILE
 
 def launch() -> None:
     try:
+        if "--download-job" in sys.argv:
+            from download_job import main
+            main()
+            return
         if "--telegram-bot" in sys.argv:
             from bot import main
             main()
@@ -29,6 +33,8 @@ def launch() -> None:
                 stream.write(f"\n{datetime.now().isoformat(timespec='seconds')}\n{details}")
         except OSError:
             pass
+        if "--download-job" in sys.argv:
+            raise SystemExit(1)
         ctypes.windll.user32.MessageBoxW(
             0,
             f"{APP_NAME} could not start.\n\n"

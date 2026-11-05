@@ -56,7 +56,7 @@ The app core is embedded so it can be distributed as a single installer without 
 
 ### Official download sources
 
-- Node.js 24.22.1 x64 ZIP: `https://nodejs.org/dist/v24.22.1/node-v24.22.1-win-x64.zip`
+- Node.js 24.22.2 x64 ZIP: `https://nodejs.org/dist/v24.22.2/node-v24.22.2-win-x64.zip`
 - FFmpeg 9.0.2 essentials ZIP: `https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-9.0.2-essentials_build.zip`
 
 `official_resources.py` records publisher checksums and the exact archive members
@@ -146,7 +146,7 @@ that open-font license does not apply to Peyda.
 
 ## Build the Windows installer
 
-On a Windows x64 build machine, use Python 3.14.9 (the version used for this release)
+On a Windows x64 build machine, use Python 3.14.10 (the version used for this release)
 and install `requirements.txt` and `requirements-build.txt` into a dedicated
 Python virtual environment. Then run:
 
@@ -165,10 +165,25 @@ Build updates with a fresh yt-dlp environment when extraction changes. Rebuild a
 redistribute to update the frozen runtime; the installed app does not run pip.
 See `THIRD-PARTY.md` for redistribution notices and source information.
 
-Release 4.6.0 uses the Astral python-build-standalone Python 3.14.9 Windows
+Release 4.7.0 uses the Astral python-build-standalone Python 3.14.10 Windows
 runtime, including Tcl/Tk 9.0.4. It is unpacked into the build workspace;
 it does not replace the build machine's installed Python. Its release archive
 is verified against the SHA-256 published by the provider.
+
+## Job isolation and conversion
+
+The desktop supervisor claims one job, launches `--download-job` in a separate
+process, and reads its JSON event journal. Queue controls are checked independently
+of yt-dlp hooks. Windows Job Objects contain the worker and its FFmpeg/JavaScript
+children, so cancellation or a worker crash cannot leave those tools running.
+New downloads never infer collection consent from a URL query parameter. Expansion
+checks the saved consent flag and the transaction rechecks pending controls before
+creating child jobs. Restart recovery removes pending deletions and pauses unfinished jobs.
+
+`media_encode.py` probes usable H.264 encoders with real encoding commands. It
+tries NVENC, QSV, and AMF before a `libx264` veryfast fallback, and reports encoding
+progress. Compatibility is checked before and after conversion. Only files reported
+by the current download are considered; recent unrelated files are never scanned.
 
 ## Contributing and security
 

@@ -19,7 +19,7 @@ from telegram.ext import (
     filters,
 )
 
-from download_config import bot_download_settings, format_bytes, has_playlist_parameter
+from download_config import bot_download_settings, format_bytes, has_playlist_parameter, is_collection_url
 from queue_store import QueueStore
 from app_paths import APP_NAME, QUEUE_DB
 
@@ -67,6 +67,7 @@ def download_root() -> Path:
 def job_settings(mode: str, quality: str, playlist: bool = False) -> dict[str, Any]:
     payload = bot_download_settings(download_root(), mode, quality, playlist)
     payload["proxy"] = STORE.get_preference("download_proxy")
+    payload["encoder"] = STORE.get_preference("video_encoder", "auto")
     cookie_file = STORE.get_preference("cookie_file")
     browser = STORE.get_preference("browser", "none")
     if cookie_file and Path(cookie_file).is_file():
@@ -193,18 +194,22 @@ async def receive_urls(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.effective_message.reply_text(f"Send no more than {MAX_URLS_PER_MESSAGE} URLs at once.")
         return
     context.chat_data["pending_urls"] = urls
-    if any(has_playlist_parameter(url) for url in urls):
-        await update.effective_message.reply_text(
+    context.chat_data["pending_playlist"] = False
+    context.chat_data["pending_needs_scope"] = any(has_playlist_parameter(url) or is_collection_url(url) for url in urls)
+    context.chat_data.pop("pending_message_id", None)
+    if context.chat_data["pending_needs_scope"]:
+        selection_message = await update.effective_message.reply_text(
             f"📚 Playlist detected in {len(urls)} submitted link{'s' if len(urls) != 1 else ''}.\n"
             "What should I download?",
             reply_markup=playlist_keyboard(),
         )
     else:
         context.chat_data["pending_playlist"] = False
-        await update.effective_message.reply_text(
+        selection_message = await update.effective_message.reply_text(
             f"🎚 Choose one format for {len(urls)} queue item{'s' if len(urls) != 1 else ''}:",
             reply_markup=choice_keyboard(),
         )
+    context.chat_data["pending_message_id"] = selection_message.message_id
 
 
 async def choose_scope(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -212,10 +217,12 @@ async def choose_scope(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     query = update.callback_query
     await query.answer()
-    if not context.chat_data.get("pending_urls"):
+    if (not context.chat_data.get("pending_urls")
+            or context.chat_data.get("pending_message_id") != query.message.message_id):
         await query.edit_message_text("⌛ This choice expired. Send the links again.")
         return
     context.chat_data["pending_playlist"] = query.data == "scope:playlist"
+    context.chat_data["pending_needs_scope"] = False
     scope = "full playlist" if context.chat_data["pending_playlist"] else "single video"
     await query.edit_message_text(
         f"✅ Scope: {scope}\n\n🎚 Now choose the output format:", reply_markup=choice_keyboard()
@@ -227,6 +234,10 @@ async def choose_download(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
     query = update.callback_query
     await query.answer()
+    if (context.chat_data.get("pending_message_id") != query.message.message_id
+            or context.chat_data.get("pending_needs_scope")):
+        await query.edit_message_text("⌛ This choice expired. Use the current selection message.")
+        return
     urls = context.chat_data.pop("pending_urls", None)
     if not urls:
         await query.edit_message_text("⌛ This choice expired. Send the URLs again.")

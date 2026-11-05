@@ -12,13 +12,13 @@ from online_download import DownloadProblem, validate_config
 # linked by FFmpeg. Keep URLs, versions, sizes and hashes together when updating.
 RESOURCES = [
     {
-        "id": "node", "label": "Node.js", "version": "24.22.1",
-        "url": "https://nodejs.org/dist/v24.22.1/node-v24.22.1-win-x64.zip",
-        "size": 37748064,
-        "sha256": "d2046d28c2c3dcd211ac5145c0bf30e2047ef9dfb306693c8c6e2eccd8b95fa5",
+        "id": "node", "label": "Node.js", "version": "24.22.2",
+        "url": "https://nodejs.org/dist/v24.22.2/node-v24.22.2-win-x64.zip",
+        "size": 37754834,
+        "sha256": "ca1bff5d8ead13c9f2ea404a176db46bd430704d5b5113734049fa365e7799e2",
         "members": {
-            "node-v24.22.1-win-x64/node.exe": "_internal/tools/node.exe",
-            "node-v24.22.1-win-x64/LICENSE": "_internal/licenses/Node-LICENSE.txt",
+            "node-v24.22.2-win-x64/node.exe": "_internal/tools/node.exe",
+            "node-v24.22.2-win-x64/LICENSE": "_internal/licenses/Node-LICENSE.txt",
         },
     },
     {

@@ -110,7 +110,7 @@ class DownloadSettingsTests(unittest.TestCase):
                     ]
                 }))
 
-    def test_mixed_desktop_urls_detect_playlist_independently(self) -> None:
+    def test_list_parameter_does_not_opt_in_to_playlist_downloads(self) -> None:
         settings = DownloadSettings(target=Path("D:/Downloads"), playlist=False)
         solo = "https://www.youtube.com/watch?v=i4reL-_DULU"
         playlist = (
@@ -120,7 +120,7 @@ class DownloadSettingsTests(unittest.TestCase):
         self.assertFalse(has_playlist_parameter(solo))
         self.assertTrue(has_playlist_parameter(playlist))
         self.assertFalse(desktop_settings_for_url(settings, solo)["playlist"])
-        self.assertTrue(desktop_settings_for_url(settings, playlist)["playlist"])
+        self.assertFalse(desktop_settings_for_url(settings, playlist)["playlist"])
 
     def test_proxy_validation(self) -> None:
         self.assertEqual(validate_proxy_url(""), "")
@@ -169,7 +169,7 @@ class DownloadSettingsTests(unittest.TestCase):
                 self.assertGreaterEqual(logo.width, 1000)
 
     def test_onboarding_is_complete_and_never_requires_a_website_account(self) -> None:
-        self.assertEqual(APP_VERSION, "4.6.1")
+        self.assertEqual(APP_VERSION, "4.7.0")
         for language, copy in GUIDE_TEXT.items():
             with self.subTest(language=language):
                 self.assertEqual(len(copy["steps"]), 5)
@@ -360,11 +360,10 @@ class QueueStoreTests(unittest.TestCase):
 
         self.store.recover_interrupted()
 
-        for job_id in (downloading, processing):
-            job = self.store.get(job_id)
-            self.assertEqual(job["status"], "queued")
-            self.assertEqual(job["control"], "")
-            self.assertEqual(job["detail"], "Resuming after restart")
+        job = self.store.get(downloading)
+        self.assertEqual(job["status"], "paused")
+        self.assertEqual(job["control"], "")
+        self.assertIsNone(self.store.get(processing))
         self.assertEqual(self.store.get(paused)["status"], "paused")
 
     def test_invalid_job_settings_fail_cleanly_without_stranding_worker(self) -> None:
@@ -379,7 +378,7 @@ class QueueStoreTests(unittest.TestCase):
         worker.output_candidates = set()
         worker.events = queue.Queue()
         with mock.patch("app.LOGGER.exception"):
-            worker._download_worker()
+            worker._run_claimed_job(self.store.claim_next())
 
         job = self.store.get(job_id)
         self.assertEqual(job["status"], "failed")
