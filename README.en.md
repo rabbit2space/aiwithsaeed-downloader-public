@@ -43,6 +43,8 @@ On the first launch of 4.7, existing pending items from older versions are also 
 
 Try without cookies first. If YouTube asks you to sign in, open the app's setup guide for Firefox instructions. The same guide walks through creating a Telegram bot. The desktop app must stay open for the bot to work.
 
+File uploads to Telegram are off by default. Send a link to your bot to download it on your PC; the bot replies with the saved file path. Enable **Send files to Telegram** under **Keep the details** to also receive files smaller than 50 MiB in Telegram. The choice is saved and checked before each file, without restarting the bot. Turning it on does not resend files already reported as saved locally.
+
 If your connection blocks installation or downloads, try another connection or a system-wide VPN. A browser VPN extension does not cover the desktop app.
 
 The app connects to the source websites, optional Telegram services, and official tool download hosts. Keep cookies and tokens private; redact personal information before reporting an issue. Using account cookies can put that account at risk of restrictions.

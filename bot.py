@@ -142,7 +142,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         "📥 They will appear immediately in the desktop queue.\n"
         "1️⃣ The app downloads one item at a time.\n"
         "🎛 Use /queue to pause, resume, delete, and refresh jobs.\n"
-        "📦 Files below 50 MiB are sent here; larger files stay on your computer.\n\n"
+        "💻 Downloads are saved on your computer.\n"
+        "📦 To receive files below 50 MiB here too, enable ‘Send files to Telegram’ in the app.\n\n"
         "Keep the desktop app open while downloading."
     )
 
@@ -316,7 +317,8 @@ async def delivery_loop(application: Application) -> None:
                         for index, path in enumerate(existing, 1):
                             size = path.stat().st_size
                             label = f"{index}/{len(existing)}" if len(existing) > 1 else "Ready"
-                            if size < TELEGRAM_FILE_LIMIT:
+                            upload_enabled = STORE.get_preference("telegram_uploads", "0") == "1"
+                            if upload_enabled and size < TELEGRAM_FILE_LIMIT:
                                 with path.open("rb") as stream:
                                     await application.bot.send_document(
                                         chat_id=chat_id, document=stream, filename=path.name,
@@ -324,11 +326,17 @@ async def delivery_loop(application: Application) -> None:
                                         read_timeout=300, write_timeout=300,
                                     )
                             else:
+                                if not upload_enabled:
+                                    local_note = ("ارسال فایل به تلگرام خاموش است؛ فایل روی کامپیوتر ذخیره شد:"
+                                                  if STORE.get_preference("language", "fa") == "fa" else
+                                                  "Telegram file uploads are off; saved on your computer:")
+                                else:
+                                    local_note = "Too large for Telegram; ready on your computer:"
                                 await application.bot.send_message(
                                     chat_id=chat_id,
                                     text=(
                                         f"💻 Download ready · {label} · {format_bytes(size)}\n"
-                                        f"Too large for Telegram; ready on your computer:\n{path}"
+                                        f"{local_note}\n{path}"
                                     ),
                                 )
                     else:

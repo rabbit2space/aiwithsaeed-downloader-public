@@ -1,5 +1,19 @@
 # Changelog / تغییرات
 
+## 4.8.0 — 2026-11-08
+
+### فارسی
+
+- اضافه‌شدن گزینه «ارسال فایل به تلگرام»؛ به‌صورت پیش‌فرض خاموش است.
+- در حالت خاموش، ربات لینک را برای دانلود روی کامپیوتر می‌پذیرد و مسیر فایل را اعلام می‌کند؛ خود فایل ارسال نمی‌شود.
+- انتخاب شما ذخیره می‌شود و پیش از ارسال هر فایل بررسی می‌شود؛ نیازی به راه‌اندازی دوباره ربات نیست.
+
+### English
+
+- Add a persistent **Send files to Telegram** setting, off by default.
+- Keep bot downloads on the PC and send completion/file-path notifications when uploads are disabled.
+- Check the setting before each file without a bot restart; enabling it does not resend past local-only completions.
+
 ## 4.7.0 — 2026-11-05
 
 ### فارسی

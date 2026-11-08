@@ -25,6 +25,19 @@ def main() -> None:
         window._set_language("fa")
         window.update()
         assert window.language == "fa"
+        upload_box = next(box for box in window.feature_checkboxes
+                          if box.cget("text") == window._text("telegram_uploads"))
+        original_uploads = window.telegram_uploads.get()
+        assert upload_box.cget("variable") is window.telegram_uploads
+        window.telegram_uploads.set(True)
+        window._toggle_telegram_uploads()
+        assert app.QueueStore(app.QUEUE_DB).get_preference("telegram_uploads") == "1"
+        window.telegram_uploads.set(False)
+        window._toggle_telegram_uploads()
+        assert app.QueueStore(app.QUEUE_DB).get_preference("telegram_uploads") == "0"
+        result["telegram_uploads_default_off"] = not original_uploads
+        result["telegram_uploads_persisted"] = True
+        assert upload_box.grid_info()["sticky"] == "e"
         assert int(window.brand_logo.grid_info()["column"]) == 4
         window._refresh_queue_view()
         assert window.empty_queue_label.cget("text") == window._text("queue_empty")
@@ -35,12 +48,19 @@ def main() -> None:
             window._render_setup_guide()
             window.update()
             assert window.setup_window.winfo_exists()
+            if step == 4:
+                assert window.telegram_setup_upload_checkbox.cget("variable") is window.telegram_uploads
+                assert int(window.telegram_setup_upload_checkbox._canvas.grid_info()["column"]) == 2
         window._complete_setup_guide()
         window._set_language("en")
         window.update()
         assert int(window.brand_logo.grid_info()["column"]) == 0
         assert window.empty_queue_label.cget("text") == window._text("queue_empty")
         assert window.empty_queue_label.pack_info()["anchor"] == "w"
+        assert upload_box.cget("text") == "Send files to Telegram"
+        assert upload_box.grid_info()["sticky"] == "w"
+        window.telegram_uploads.set(original_uploads)
+        window._toggle_telegram_uploads()
         window._set_language("fa")
         for name in ("ffmpeg", "ffprobe"):
             path = app.DownloaderApp._media_tool(name)

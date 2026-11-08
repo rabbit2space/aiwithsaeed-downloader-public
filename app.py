@@ -73,7 +73,7 @@ except ImportError:
     yt_dlp = None
 
 
-APP_VERSION = "4.7.0"
+APP_VERSION = "4.8.0"
 APP_DIR = INSTALL_DIR
 ASSET_DIR = APP_DIR / "assets"
 BRAND_LOGO_LIGHT_FILE = ASSET_DIR / "aiwithsaeed-logo-light.png"
@@ -192,6 +192,7 @@ TEXT = {
         "metadata": "Title and metadata",
         "description": "Description file",
         "completion_sound": "Sound when finished",
+        "telegram_uploads": "Send files to Telegram",
         "access": "ACCOUNT ACCESS",
         "browser": "Browser login",
         "cookie_file": "Cookies file",
@@ -289,6 +290,7 @@ TEXT = {
         "metadata": "عنوان و اطلاعات فایل",
         "description": "فایل توضیحات",
         "completion_sound": "پخش صدا پس از پایان",
+        "telegram_uploads": "ارسال فایل به تلگرام",
         "access": "دسترسی حساب",
         "browser": "ورود از مرورگر",
         "cookie_file": "فایل کوکی",
@@ -841,6 +843,7 @@ class DownloaderApp(BaseWindow, _DndSupport):
         )
         self.playlist = tk.BooleanVar(value=False)
         self.gpu_encoding = tk.BooleanVar(value=self.job_store.get_preference("video_encoder", "auto") != "cpu")
+        self.telegram_uploads = tk.BooleanVar(value=self.job_store.get_preference("telegram_uploads", "0") == "1")
         self.subtitles = tk.BooleanVar(value=False)
         self.auto_subtitles = tk.BooleanVar(value=False)
         self.subtitle_langs = tk.StringVar(value="en")
@@ -1052,6 +1055,7 @@ class DownloaderApp(BaseWindow, _DndSupport):
             ("embed_thumbnail", self.embed_thumbnail), ("metadata", self.metadata),
             ("description", self.description), ("completion_sound", self.completion_sound),
             ("gpu_encoding", self.gpu_encoding),
+            ("telegram_uploads", self.telegram_uploads),
         )
         self.feature_checkboxes: list[Any] = []
         for index, (key, variable) in enumerate(checks):
@@ -1059,6 +1063,8 @@ class DownloaderApp(BaseWindow, _DndSupport):
                 command = self._sync_subtitle_controls
             elif key == "completion_sound":
                 command = self._toggle_completion_sound
+            elif key == "telegram_uploads":
+                command = self._toggle_telegram_uploads
             else:
                 command = None
             box = self._translated(ctk.CTkCheckBox(
@@ -1311,6 +1317,15 @@ class DownloaderApp(BaseWindow, _DndSupport):
         if self.setup_window and self.setup_window.winfo_exists():
             self._render_setup_guide()
 
+    @staticmethod
+    def _align_checkbox_content(box: Any, rtl: bool) -> None:
+        if getattr(box, "_text_label", None) is not None:
+            box.grid_columnconfigure(0, weight=1 if rtl else 0)
+            box.grid_columnconfigure(2, weight=0 if rtl else 1)
+            box._canvas.grid_configure(column=2 if rtl else 0, sticky="w" if rtl else "e")
+            box._text_label.grid_configure(column=0 if rtl else 2, sticky="e" if rtl else "w")
+            box._text_label.configure(anchor="e" if rtl else "w", justify=tk.RIGHT if rtl else tk.LEFT)
+
     def _apply_layout_direction(self, rtl: bool) -> None:
         edge = "e" if rtl else "w"
 
@@ -1364,15 +1379,7 @@ class DownloaderApp(BaseWindow, _DndSupport):
 
         for box in self.feature_checkboxes:
             box.grid_configure(sticky="e" if rtl else "w")
-            if getattr(box, "_text_label", None) is not None:
-                box.grid_columnconfigure(0, weight=1 if rtl else 0)
-                box.grid_columnconfigure(2, weight=0 if rtl else 1)
-                box._canvas.grid_configure(column=2 if rtl else 0, sticky="w" if rtl else "e")
-                box._text_label.grid_configure(column=0 if rtl else 2, sticky="e" if rtl else "w")
-                box._text_label.configure(
-                    anchor="e" if rtl else "w",
-                    justify=tk.RIGHT if rtl else tk.LEFT,
-                )
+            self._align_checkbox_content(box, rtl)
 
         self.subtitle_lang_label.pack_forget()
         self.lang_entry.pack_forget()
@@ -1631,6 +1638,13 @@ class DownloaderApp(BaseWindow, _DndSupport):
             if saved_chat:
                 self.telegram_chat_entry.insert(0, saved_chat)
             self.telegram_chat_entry.pack(fill="x", pady=(0, 9))
+            self.telegram_setup_upload_checkbox = ctk.CTkCheckBox(
+                form, text=self._text("telegram_uploads"), variable=self.telegram_uploads,
+                command=self._toggle_telegram_uploads, font=self._font(11),
+                fg_color=CYAN, hover_color="#0097B8", text_color=INK,
+            )
+            self.telegram_setup_upload_checkbox.pack(anchor=anchor, pady=(0, 12))
+            self._align_checkbox_content(self.telegram_setup_upload_checkbox, self.language == "fa")
             actions = ctk.CTkFrame(form, fg_color="transparent")
             actions.pack(fill="x")
             self.telegram_detect_button = ctk.CTkButton(
@@ -1958,6 +1972,11 @@ class DownloaderApp(BaseWindow, _DndSupport):
     def _toggle_completion_sound(self) -> None:
         self.job_store.set_preference(
             "completion_sound", "1" if self.completion_sound.get() else "0"
+        )
+
+    def _toggle_telegram_uploads(self) -> None:
+        self.job_store.set_preference(
+            "telegram_uploads", "1" if self.telegram_uploads.get() else "0"
         )
 
     def _play_completion_sound(self) -> None:
