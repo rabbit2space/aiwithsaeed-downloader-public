@@ -43,6 +43,8 @@ On the first launch of 4.7, existing pending items from older versions are also 
 
 Try without cookies first. If YouTube asks you to sign in, open the app's setup guide for Firefox instructions. The same guide walks through creating a Telegram bot. The desktop app must stay open for the bot to work.
 
+If YouTube rejects an authenticated download with HTTP 403, the app retries the same link once with a fresh cookie-free session without changing saved login settings. A thumbnail alone is not a completed download; failed queue rows show the error so you can fix the cause and resume.
+
 File uploads to Telegram are off by default. Send a link to your bot to download it on your PC; the bot replies with the saved file path. Enable **Send files to Telegram** under **Keep the details** to also receive files smaller than 50 MiB in Telegram. The choice is saved and checked before each file, without restarting the bot. Turning it on does not resend files already reported as saved locally.
 
 If your connection blocks installation or downloads, try another connection or a system-wide VPN. A browser VPN extension does not cover the desktop app.

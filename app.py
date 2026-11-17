@@ -30,6 +30,7 @@ from download_config import (
     download_single,
     is_collection_url,
     CollectionScopeError,
+    retry_youtube_without_cookies,
     format_bytes,
     premiere_streams_compatible,
     validate_proxy_url,
@@ -73,7 +74,7 @@ except ImportError:
     yt_dlp = None
 
 
-APP_VERSION = "4.8.0"
+APP_VERSION = "4.8.1"
 APP_DIR = INSTALL_DIR
 ASSET_DIR = APP_DIR / "assets"
 BRAND_LOGO_LIGHT_FILE = ASSET_DIR / "aiwithsaeed-logo-light.png"
@@ -193,6 +194,7 @@ TEXT = {
         "description": "Description file",
         "completion_sound": "Sound when finished",
         "telegram_uploads": "Send files to Telegram",
+        "youtube_guest_retry": "YouTube refused this session; retrying this video without cookies…",
         "access": "ACCOUNT ACCESS",
         "browser": "Browser login",
         "cookie_file": "Cookies file",
@@ -291,6 +293,7 @@ TEXT = {
         "description": "فایل توضیحات",
         "completion_sound": "پخش صدا پس از پایان",
         "telegram_uploads": "ارسال فایل به تلگرام",
+        "youtube_guest_retry": "یوتیوب این جلسه را نپذیرفت؛ تلاش دوباره برای همین ویدیو بدون کوکی…",
         "access": "دسترسی حساب",
         "browser": "ورود از مرورگر",
         "cookie_file": "فایل کوکی",
@@ -2216,6 +2219,35 @@ class DownloaderApp(BaseWindow, _DndSupport):
             options["proxy"] = settings.proxy
         return options
 
+    def _download_single_with_fallback(self, url: str, settings: DownloadSettings,
+                                       logger: DownloadLogger) -> int:
+        if self.cancel_event.is_set():
+            raise DownloadCancelled()
+        try:
+            with yt_dlp.YoutubeDL(self._ydl_options(settings, logger)) as ydl:
+                result = download_single(ydl, url)
+        except (DownloadCancelled, CollectionScopeError):
+            raise
+        except Exception as exc:
+            if self.cancel_event.is_set():
+                raise DownloadCancelled()
+            if not retry_youtube_without_cookies(settings, url, str(exc)):
+                raise
+            logger.error(str(exc))
+            result = 1
+        if result == 0 or not retry_youtube_without_cookies(settings, url, logger.last_error):
+            return result
+        if self.cancel_event.is_set():
+            raise DownloadCancelled()
+        # A fresh extractor must obtain guest media URLs. Reusing the rejected
+        # signed URLs or the cookie jar from the first attempt repeats the 403.
+        self.output_candidates.clear()
+        logger.last_error = ""
+        logger.warnings.clear()
+        self.events.put(("youtube_guest_retry", None))
+        with yt_dlp.YoutubeDL(self._ydl_options(settings, logger, use_cookies=False)) as ydl:
+            return download_single(ydl, url)
+
     def _probe_media(self, path: Path) -> dict[str, Any]:
         ffprobe = self._media_tool("ffprobe")
         if not ffprobe:
@@ -2457,8 +2489,7 @@ class DownloaderApp(BaseWindow, _DndSupport):
                         continue
                 logger = DownloadLogger()
                 try:
-                    with yt_dlp.YoutubeDL(self._ydl_options(settings, logger)) as ydl:
-                        result = download_single(ydl, url)
+                    result = self._download_single_with_fallback(url, settings, logger)
                 except Exception as first_error:
                     if self.cancel_event.is_set():
                         raise DownloadCancelled()
@@ -2484,8 +2515,7 @@ class DownloaderApp(BaseWindow, _DndSupport):
                     self.events.put(("cookie_retry", None))
                     retry_logger = DownloadLogger()
                     try:
-                        with yt_dlp.YoutubeDL(self._ydl_options(retry_settings, retry_logger)) as ydl:
-                            result = download_single(ydl, url)
+                        result = self._download_single_with_fallback(url, retry_settings, retry_logger)
                     except Exception as retry_error:
                         if self.cancel_event.is_set():
                             raise DownloadCancelled()
@@ -2717,6 +2747,10 @@ class DownloaderApp(BaseWindow, _DndSupport):
                 elif event == "cookie_retry":
                     self.status_label.configure(text=self._text("cookie_retry"))
                     self.detail_label.configure(text=self._text("retry_detail"))
+                elif event == "youtube_guest_retry":
+                    self.status_label.configure(text=self._text("downloading_current"))
+                    self.detail_label.configure(text=self._text("youtube_guest_retry"))
+                    self._set_progress(0)
                 elif event == "progress":
                     self.detail_label.configure(text=payload["title"])
                     if payload["percent"] is not None:
@@ -2926,6 +2960,8 @@ class DownloaderApp(BaseWindow, _DndSupport):
         source_key = "source_telegram" if job["source"] == "telegram" else "source_desktop"
         source = self._text(source_key)
         label_text = f"{source} · {job['title'] or job['url']}"
+        if status == "failed" and job.get("error"):
+            label_text += "\n" + self._clean_error(str(job["error"]))
         return badge_text, colors.get(display_status, MUTED), label_text
 
     def _add_queue_row(self, job: dict[str, Any]) -> None:

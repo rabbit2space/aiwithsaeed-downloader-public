@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
+import re
 from typing import Any
 from urllib.parse import parse_qs, urlparse, urlsplit
 
@@ -69,6 +70,14 @@ def desktop_settings_for_url(settings: DownloadSettings, url: str) -> dict[str, 
 
 class CollectionScopeError(ValueError):
     pass
+
+
+def retry_youtube_without_cookies(settings: DownloadSettings, url: str, message: str) -> bool:
+    """A logged-in YouTube session can reject otherwise public media streams."""
+    host = (urlparse(url).hostname or "").lower()
+    youtube = host == "youtu.be" or host == "youtube.com" or host.endswith(".youtube.com")
+    return bool(youtube and (settings.cookie_file or settings.browser != "none")
+                and re.search(r"\bHTTP(?: Error)? 403\b", message, re.IGNORECASE))
 
 
 def download_single(ydl: Any, url: str) -> int:

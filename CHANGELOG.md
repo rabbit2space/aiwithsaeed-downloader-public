@@ -1,5 +1,12 @@
 # Changelog / تغییرات
 
+## 4.8.1 — 2026-11-17
+
+- اصلاح خطای ۴۰۳ یوتیوب با برخی جلسه‌های مرورگر: اگر دریافت ویدیو با کوکی رد شود، همان لینک یک‌بار با جلسه تازه و بدون کوکی امتحان می‌شود. تنظیمات ورود شما حفظ می‌شوند.
+- نمایش دلیل خطای هر دانلود ناموفق در صف؛ ذخیره کاور به معنی کامل‌شدن دانلود نیست.
+- Retry the same YouTube link once with a fresh cookie-free session after an authenticated HTTP 403. Keep saved browser/cookie preferences, proxy, format, and collection controls unchanged.
+- Show the failure reason on failed queue rows; thumbnails never count as completed media outputs.
+
 ## 4.8.0 — 2026-11-08
 
 ### فارسی
