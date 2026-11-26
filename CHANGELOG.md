@@ -1,5 +1,12 @@
 # Changelog / تغییرات
 
+## 4.8.2 — 2026-11-26
+
+- به‌روزرسانی yt-dlp به نسخه رسمی ۲۰۲۶٫۱۱٫۲۳ برای سازگاری با پخش‌کننده جدید یوتیوب و رفع خطای فهرست فرمت‌ها
+- اگر یوتیوب با کوکی فقط تصویر یا فهرست ناقص فرمت‌ها بدهد، همان ویدیو یک‌بار بدون کوکی امتحان می‌شود؛ کیفیت انتخابی، تنظیمات ورود و کنترل پلی‌لیست حفظ می‌شوند.
+- Update yt-dlp to official stable 2026.11.23, including YouTube player/client fixes.
+- Extend the bounded cookie-free retry to unavailable-format and image-only authenticated responses, preserving the original quality selector and playlist scope.
+
 ## 4.8.1 — 2026-11-17
 
 - اصلاح خطای ۴۰۳ یوتیوب با برخی جلسه‌های مرورگر: اگر دریافت ویدیو با کوکی رد شود، همان لینک یک‌بار با جلسه تازه و بدون کوکی امتحان می‌شود. تنظیمات ورود شما حفظ می‌شوند.

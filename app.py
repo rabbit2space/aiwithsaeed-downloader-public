@@ -74,7 +74,7 @@ except ImportError:
     yt_dlp = None
 
 
-APP_VERSION = "4.8.1"
+APP_VERSION = "4.8.2"
 APP_DIR = INSTALL_DIR
 ASSET_DIR = APP_DIR / "assets"
 BRAND_LOGO_LIGHT_FILE = ASSET_DIR / "aiwithsaeed-logo-light.png"
@@ -2239,8 +2239,8 @@ class DownloaderApp(BaseWindow, _DndSupport):
             return result
         if self.cancel_event.is_set():
             raise DownloadCancelled()
-        # A fresh extractor must obtain guest media URLs. Reusing the rejected
-        # signed URLs or the cookie jar from the first attempt repeats the 403.
+        # A fresh extractor must obtain guest formats and media URLs. Reusing
+        # the rejected URLs or the first cookie jar repeats the session failure.
         self.output_candidates.clear()
         logger.last_error = ""
         logger.warnings.clear()

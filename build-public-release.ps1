@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
-$version = "4.8.1"
+$version = "4.8.2"
 $workspace = (Resolve-Path $PSScriptRoot).Path
 $dist = Join-Path $workspace "dist"
 $stage = Join-Path $dist "AIwithSaeed-Downloader-v$version"

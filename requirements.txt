@@ -1,4 +1,4 @@
-yt-dlp[default]>=2026.10.26
+yt-dlp[default]>=2026.11.23
 customtkinter>=5.2.2,<6
 Pillow>=13.0,<14
 tkinterdnd2>=0.7.0,<1

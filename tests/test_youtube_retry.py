@@ -67,6 +67,31 @@ class YouTubeRetryTests(unittest.TestCase):
                 self.worker._download_single_with_fallback(self.url, self.settings, self.logger)
         self.assertEqual(constructor.call_count, 2)
 
+    def test_missing_authenticated_formats_reextract_without_changing_quality(self):
+        message = "[youtube] example: Requested format is not available. Use --list-formats"
+        with mock.patch("app.yt_dlp.YoutubeDL") as constructor, \
+                mock.patch("app.download_single", side_effect=[RuntimeError(message), 0]) as download:
+            self.assertEqual(self.worker._download_single_with_fallback(self.url, self.settings, self.logger), 0)
+        self.assertEqual(download.call_count, 2)
+        original, guest = [call.args[0] for call in constructor.call_args_list]
+        self.assertEqual(guest["format"], original["format"])
+        self.assertNotIn("cookiesfrombrowser", guest)
+        self.assertEqual(self.settings.quality, "best")
+
+    def test_image_only_authenticated_metadata_qualifies_but_guest_does_not(self):
+        message = "Only images are available for download. use --list-formats to see them"
+        self.assertTrue(retry_youtube_without_cookies(self.settings, self.url, message))
+        self.assertFalse(retry_youtube_without_cookies(DownloadSettings(Path("downloads")), self.url, message))
+        self.assertFalse(retry_youtube_without_cookies(self.settings, "https://example.org/video", message))
+
+    def test_missing_guest_formats_fail_once_instead_of_retrying_forever(self):
+        settings = DownloadSettings(Path("downloads"))
+        with mock.patch("app.yt_dlp.YoutubeDL") as constructor, \
+                mock.patch("app.download_single", side_effect=RuntimeError("Requested format is not available")):
+            with self.assertRaisesRegex(RuntimeError, "format"):
+                self.worker._download_single_with_fallback(self.url, settings, self.logger)
+        self.assertEqual(constructor.call_count, 1)
+
     def test_collection_scope_and_cancellation_are_never_retried(self):
         for error in (CollectionScopeError("HTTP Error 403"), DownloadCancelled()):
             with mock.patch("app.yt_dlp.YoutubeDL") as constructor, \

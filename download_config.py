@@ -73,11 +73,14 @@ class CollectionScopeError(ValueError):
 
 
 def retry_youtube_without_cookies(settings: DownloadSettings, url: str, message: str) -> bool:
-    """A logged-in YouTube session can reject otherwise public media streams."""
+    """Retry blocked or incomplete authenticated YouTube format lists once."""
     host = (urlparse(url).hostname or "").lower()
     youtube = host == "youtu.be" or host == "youtube.com" or host.endswith(".youtube.com")
-    return bool(youtube and (settings.cookie_file or settings.browser != "none")
-                and re.search(r"\bHTTP(?: Error)? 403\b", message, re.IGNORECASE))
+    diagnostic = message.lower()
+    session_failure = (re.search(r"\bHTTP(?: Error)? 403\b", message, re.IGNORECASE)
+                       or "requested format is not available" in diagnostic
+                       or "only images are available for download" in diagnostic)
+    return bool(youtube and (settings.cookie_file or settings.browser != "none") and session_failure)
 
 
 def download_single(ydl: Any, url: str) -> int:
